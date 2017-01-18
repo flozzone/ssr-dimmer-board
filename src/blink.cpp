@@ -144,14 +144,6 @@ void init_outputs() {
   DDRB |= (1<<PB0);
 }
 
-void toggle_output() {
-  if (PORTB & (1<<PB0)) {
-    PORTB &= ~(1<<PB0);
-  } else {
-    PORTB |= (1<<PB0);
-  }
-}
-
 void set_output(byte value) {
   if (value > 0) {
     PORTB |= (1<<PB0);
@@ -188,41 +180,53 @@ void compare_A(uint16_t tick) {
   TIMSK1 |= (1<<OCIE1A);
 }
 
-void zero_cross(byte t_edge_type) {
-  //toggle_output();
+void set_wave_width(uint16_t ticks) {
+  wave_width = ticks;
+  half_wave_width = ticks / 2;
+}
+
+void zero_cross(byte edge_type) {
+
+  if (edge_type = RISING_EDGE) {
+    set_output(1);
+  } else {
+    set_output(0);
+  }
 }
 
 /**
- * Zero cross input interrupt
+ * ZC Optocoupler interrupt
  **/
 ISR (PCINT2_vect) {
+  // temporarily store changing values
   uint16_t timer_value = TCNT1;
   byte input_state = (PIND & (1<<PD2));
 
   // detect current wave type
   if (input_state > 0) {
-    //set_output(1);
+
+    // synchronize timer1 with the AC frequency 
     if (wave_type == INITIALIZING) {
 
+      // start by measuring one cycle
       if (!is_timer_running()) {
         start_timer(0);
-        //printf("calib\n\r");
+
       } else {
         wave_type = POSITIVE;
         start_timer(timer_offset);
 
-        wave_width = timer_value;
-        half_wave_width = timer_value / 2;
+        set_wave_width(timer_value);
 
         compare_A(half_wave_width);
-
-        //printf("wave_width: %u\n\r", wave_width);
       }
     } else {
+      // TODO: update wave_width and half_wave_width at every cycle
+
+      // TODO: calculate additional offset which is lost at timer reset
       start_timer(timer_offset);
-      //wave_type = POSITIVE;
+
       compare_A(half_wave_width);
-      // start timer at 500us offset
     }
   }
 }
@@ -232,15 +236,22 @@ ISR (PCINT2_vect) {
  **/
 ISR (TIMER1_COMPA_vect) {
   if (wave_type == POSITIVE) {
-    set_output(0);
-    zero_cross(FALLING_EDGE);
-    wave_type = NEGATIVE;
+    // let the timer run to the full measured cycle time
     compare_A(wave_width);
+
+    // call user code for falling edge
+    zero_cross(FALLING_EDGE);
+
+    wave_type = NEGATIVE;
+
   } else {
-    set_output(1);
-    zero_cross(RISING_EDGE);
-    wave_type = POSITIVE;
+    // 
     compare_A(half_wave_width);
+
+    // call user code for rising edge
+    zero_cross(RISING_EDGE);
+
+    wave_type = POSITIVE;
   }
 }
 

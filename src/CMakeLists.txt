@@ -26,5 +26,9 @@ generate_arduino_library(zero_cross
 generate_arduino_firmware(blink
     SRCS blink.cpp
     LIBS zero_cross
-    BOARD uno)
+    BOARD uno
+    PORT /dev/ttyUSB0
+)
 
+
+set(blink_PROGRAMMER avrisp)

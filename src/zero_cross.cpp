@@ -109,7 +109,7 @@ static void set_wave_width(uint16_t ticks) {
 
 static void zero_cross(uint8_t edge_type) {
 
-  if (edge_type = RISING_EDGE) {
+  if (edge_type == RISING_EDGE) {
     set_output(1);
   } else {
     set_output(0);

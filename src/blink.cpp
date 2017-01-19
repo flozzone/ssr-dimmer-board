@@ -13,7 +13,6 @@
 
 
 #include "zero_cross.h"
-#include "inttypes.h"
 
 byte ledPin = 13;
 byte zcPin =  2;
@@ -75,6 +74,8 @@ void setup() {
   pinMode(zcPin, INPUT_PULLUP);
   //pinMode(zcOutPin, OUTPUT);
   pciSetup(zcPin);
+
+  zc_init();
 }
 
 

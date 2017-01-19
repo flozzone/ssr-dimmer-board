@@ -12,21 +12,21 @@
 #define TIMER_OFFSET_NS               650000
 #define CHANNEL_COUNT                 5
 
-enum t_switch_ {
+enum t_switch {
   OFF,
   ON
-} t_switch;
+};
 
-enum t_wave_type_ {
+enum t_wave_type {
   INITIALIZING,
   POSITIVE,
   NEGATIVE
-} t_wave_type;
+};
 
-enum t_edge_type_ {
+enum t_edge_type{
   FALLING_EDGE,
   RISING_EDGE
-} t_edge_type;
+};
 
 //TODO: phasenanschnitt | ZC(off) -- (on)  -- | ZC(off) ...
 //TODO: phasenabschnitt | ZC(on)  -- (off) -- | ZC(on)  ...

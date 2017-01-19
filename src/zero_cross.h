@@ -9,7 +9,7 @@
 
 // starts the timer at the given value when a rising edge zero cross
 // is detected. This is used to compensate the slow zero cross circuit.
-#define TIMER_OFFSET_NS               650000
+#define TIMER_OFFSET_NS               850000
 #define CHANNEL_COUNT                 5
 
 enum t_switch {

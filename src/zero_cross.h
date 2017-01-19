@@ -19,6 +19,7 @@ enum t_switch {
 
 enum t_wave_type {
   INITIALIZING,
+  CALIBRATING,
   POSITIVE,
   NEGATIVE
 };

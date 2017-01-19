@@ -20,9 +20,9 @@ byte zcOutPin = 8;
 
 void pciSetup(byte pin)
 {
-  *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // enable pin
-  PCIFR  |= bit (digitalPinToPCICRbit(pin)); // clear any outstanding interrupt
-  PCICR  |= bit (digitalPinToPCICRbit(pin)); // enable interrupt for the group
+  //*digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // enable pin
+  //PCIFR  |= bit (digitalPinToPCICRbit(pin)); // clear any outstanding interrupt
+  //PCICR  |= bit (digitalPinToPCICRbit(pin)); // enable interrupt for the group
 }
 
 
@@ -73,7 +73,7 @@ void setup() {
   pinMode(ledPin, OUTPUT);
   pinMode(zcPin, INPUT_PULLUP);
   //pinMode(zcOutPin, OUTPUT);
-  pciSetup(zcPin);
+  //pciSetup(zcPin);
 
   zc_init();
 }

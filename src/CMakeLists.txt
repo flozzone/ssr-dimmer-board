@@ -30,6 +30,3 @@ generate_arduino_firmware(blink
     SRCS blink.cpp
     LIBS zero_cross
 )
-
-
-#set(blink_PROGRAMMER avrisp)

@@ -23,9 +23,17 @@ static void start_timer(uint16_t);
 static void init_zc_interrupt(void);
 static void init_outputs(void);
 
+typedef struct {
+  uint8_t zc_action;
+  uint16_t event_ticks;
+} t_setting;
+
+volatile t_setting channel_settings[CHANNEL_COUNT];
+
 volatile uint8_t wave_type = INITIALIZING;
 volatile uint16_t wave_width = 0;
 volatile uint16_t half_wave_width = 0;
+volatile uint16_t frac_width = 0;
 static uint16_t timer_offset = TIMER_OFFSET_TICKS;
 volatile uint8_t zc_out = 0;
 
@@ -36,6 +44,14 @@ void zc_init() {
   init_zc_interrupt();
   init_outputs();
   reset_timer();
+}
+
+void zc_set_channel(uint8_t chan_number, uint8_t zc_action, uint8_t frac) {
+  if (chan_number >= CHANNEL_COUNT)
+    return;
+
+  channel_settings[chan_number].zc_action = zc_action;
+  channel_settings[chan_number].event_ticks = frac * frac_width;
 }
 
 static void init_zc_interrupt(void) {
@@ -87,6 +103,8 @@ static void compare_A(uint16_t tick) {
 static void set_wave_width(uint16_t ticks) {
   wave_width = ticks;
   half_wave_width = ticks / 2;
+
+  frac_width = wave_width / 256;
 }
 
 static void zero_cross(uint8_t edge_type) {
@@ -95,6 +113,10 @@ static void zero_cross(uint8_t edge_type) {
     set_output(1);
   } else {
     set_output(0);
+  }
+
+  for (int i = 0; i < CHANNEL_COUNT; i++) {
+    //TODO: perform all zero cross events
   }
 }
 
@@ -163,4 +185,13 @@ ISR (TIMER1_COMPA_vect) {
  * Timer1 compare B interrupt
  **/
 ISR (TIMER1_COMPB_vect) {
+  uint16_t timer_value = TCNT1;
+
+  for (int i = 0; i < CHANNEL_COUNT; i++) {
+    //TODO: test which value is suited more here (when interrupt gets delayed)
+    if ((channel_settings[i].event_ticks > (timer_value - 200)) 
+        && (channel_settings[i].event_ticks <= timer_value)) {
+
+    }
+  }
 }

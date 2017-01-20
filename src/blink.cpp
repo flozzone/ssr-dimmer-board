@@ -75,7 +75,9 @@ void setup() {
   //pinMode(zcOutPin, OUTPUT);
   //pciSetup(zcPin);
 
-  zc_init();
+  zc_set(CHANNEL5, OFF, 0);
+  zc_set(CHANNEL5, OFF, 0);
+  zc_start();
 }
 
 

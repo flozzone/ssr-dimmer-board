@@ -22,25 +22,84 @@
 #define TIMER1_CS_MASK                0x3
 #define TIMER1_CS_8_PRES              0x2
 
+#define CHANNEL_COUNT                 5
+#define MAX_TICKS                     65535
+
 
 static void reset_timer(void);
 static void start_timer(uint16_t);
 static void reset_zc_interrupt(void);
 static void init_outputs(void);
 
-typedef struct {
-  uint8_t zc_action;
-  uint16_t event_ticks;
-} t_setting;
-
 static uint16_t timer_offset = TIMER_OFFSET_TICKS;
 
-volatile t_setting channel_settings[CHANNEL_COUNT];
-volatile uint8_t wave_type = INITIALIZING;
-volatile uint16_t wave_width = 0;
-volatile uint16_t half_wave_width = 0;
-volatile uint16_t frac_width = 0;
-volatile uint8_t zc_out = 0;
+typedef struct {
+  bool enabled;
+  volatile uint8_t *port;
+  volatile uint8_t *ddr;
+  volatile uint8_t pin;
+  t_action zc_action;
+  t_ticks event_ticks;
+} t_channel;
+
+/**
+ * output ports:
+ *  - digital pin 4: PD4
+ *  - digital pin 5: PD5
+ *  - digital pin 6: PD6
+ *  - digital pin 7: PD7
+ *  - digital pin 8: PB0
+ */
+volatile t_channel channels[CHANNEL_COUNT] = {
+        {
+                .enabled = false,
+                .port = &PORTD,
+                .ddr = &DDRD,
+                .pin = PD4,
+                .zc_action = OFF,
+                .event_ticks = 0
+        },
+        {
+                .enabled = false,
+                .port = &PORTD,
+                .ddr = &DDRD,
+                .pin = PD5,
+                .zc_action = OFF,
+                .event_ticks = 0
+        },
+        {
+                .enabled = false,
+                .port = &PORTD,
+                .ddr = &DDRD,
+                .pin = PD6,
+                .zc_action = OFF,
+                .event_ticks = 0
+        },
+        {
+                .enabled = false,
+                .port = &PORTD,
+                .ddr = &DDRD,
+                .pin = PD7,
+                .zc_action = OFF,
+                .event_ticks = 0
+        },
+        {
+                .enabled = false,
+                .port = &PORTB,
+                .ddr = &DDRB,
+                .pin = PB0,
+                .zc_action = OFF,
+                .event_ticks = 0
+        }
+};
+
+
+volatile t_wave wave_type = INITIALIZING;
+volatile t_ticks wave_width = 0;
+volatile t_ticks half_wave_width = 0;
+
+// TODO: remove this static value
+volatile t_ticks frac_width = 75;
 volatile bool zc_valid = false;
 
 static void reset_zc_interrupt(void) {
@@ -61,25 +120,20 @@ static void disable_zc_interrupt(void) {
 }
 
 static void init_outputs() {
-  // test output
-  PORTB &= ~((1<<PB0) | (1<<PB1));
-  DDRB |= ((1<<PB0) | (1<<PB1));
-}
-
-static void set_output(uint8_t value) {
-  if (value > 0) {
-    PORTB |= (1<<PB0);
-  } else {
-    PORTB &= ~(1<<PB0);
+  for (int i = 0; i < CHANNEL_COUNT; i++) {
+    *channels[i].port &= ~(1<<channels[i].pin);
+    *channels[i].ddr |= (1<<channels[i].pin);
   }
 }
 
-static void set_output2(uint8_t value) {
-  if (value > 0) {
-    PORTB |= (1<<PB1);
+static void set_output(t_channel_nr channel, t_action action) {
+
+  if (action > 0) {
+    *channels[channel].port |= (1<<channels[channel].pin);
   } else {
-    PORTB &= ~(1<<PB1);
+    *channels[channel].port &= ~(1<<channels[channel].pin);
   }
+
 }
 
 static void reset_timer(void) {
@@ -109,33 +163,48 @@ static void disable_compare_interrupts(void) {
   TIMSK1 &= ~((1<<OCIE1A) || (1<<OCIE1B));
 }
 
-static void compare_A(uint16_t tick) {
+static void compare_A(t_ticks tick) {
   OCR1A = tick;
   TIMSK1 |= (1<<OCIE1A);
 }
 
-static void compare_B(uint16_t tick) {
+static void compare_B(t_ticks tick) {
   OCR1B = tick;
   TIMSK1 |= (1<<OCIE1B);
 }
 
-static void set_wave_width(uint16_t ticks) {
+static void set_wave_width(t_ticks ticks) {
   wave_width = ticks;
   half_wave_width = ticks / 2;
 
   frac_width = wave_width / 256;
 }
 
-static void zero_cross(uint8_t edge_type) {
+static inline uint8_t invert(t_action action) {
+  return action == ON ? OFF : ON;
+}
 
-  if (edge_type == RISING_EDGE) {
-    set_output(1);
-  } else {
-    set_output(0);
-  }
+static void zero_cross(t_edge edge) {
+
+  t_ticks next_event = MAX_TICKS;
 
   for (int i = 0; i < CHANNEL_COUNT; i++) {
-    //TODO: perform all zero cross events
+    t_channel *channel = (t_channel *) &channels[i];
+    if (channel->enabled) {
+      set_output(i, channel->zc_action);
+
+      // find next tick count
+      if (channel->event_ticks < next_event) {
+        //printf("a %u:%u\n\r", i, channel->event_ticks);
+        next_event = channel->event_ticks;
+      }
+    }
+  }
+
+  if (next_event <= MAX_TICKS) {
+    compare_B(next_event);
+    //printf("n:%u\n\r", next_event);
+    //printf("f:%u\n\r", frac_width);
   }
 }
 
@@ -182,8 +251,10 @@ static void reset(void) {
 
   init_outputs();
 
-  //TODO: disable all outputs
-  set_output(0);
+  // disable all output channels
+  for (int i = 0; i < CHANNEL_COUNT; i++) {
+    set_output(i, OFF);
+  }
 }
 
 /**
@@ -191,10 +262,8 @@ static void reset(void) {
  **/
 ISR (INT0_vect) {
   // temporarily store changing values
-  uint16_t timer_value = read_timer_value();
+  t_ticks timer_value = read_timer_value();
   uint8_t input_state = (PIND & (1<<PD2));
-
-  set_output2(1);
 
   cli();
 
@@ -234,8 +303,6 @@ ISR (INT0_vect) {
   }
 
   sei();
-
-  set_output2(0);
 }
 
 /**
@@ -274,34 +341,56 @@ ISR (TIMER1_COMPA_vect) {
  * Timer1 compare B interrupt
  **/
 ISR (TIMER1_COMPB_vect) {
-  uint16_t timer_value = read_timer_value();
+  t_ticks timer_value = read_timer_value();
+  t_ticks next_event = MAX_TICKS;
 
+  //if (timer_value >= half_wave_width)
+  //  timer_value -= half_wave_width;
 
   for (int i = 0; i < CHANNEL_COUNT; i++) {
     //TODO: test which value is suited more here (when interrupt gets delayed)
-    if ((channel_settings[i].event_ticks > (timer_value - 200)) 
-        && (channel_settings[i].event_ticks <= timer_value)) {
+    t_channel *channel = (t_channel *) &channels[i];
+    if (channel->enabled) {
+      // find current event and set output accordingly
+      if ((channel->event_ticks > (timer_value - 10))
+         && (channel->event_ticks <= timer_value)) {
+        set_output(i, invert(channel->zc_action));
+      }
 
+      // find next tick count
+      if ((channel->event_ticks > timer_value)
+          && (channel->event_ticks < next_event)) {
+        next_event = channel->event_ticks;
+      }
     }
   }
+
+  if (next_event < MAX_TICKS)
+    compare_B(next_event);
 }
 
 ISR (TIMER1_OVF_vect) {
   reset();
 }
 
-void zc_init() {
+void zc_start() {
   reset();
 
   reset_timer();
   reset_zc_interrupt();
 }
 
-void zc_set_channel(uint8_t chan_number, uint8_t zc_action, uint8_t frac) {
+void zc_set(t_channel_nr chan_nr, t_action zc_action, uint8_t percent) {
+    if (chan_nr < CHANNEL_COUNT) {
+      channels[chan_nr].enabled = true;
+      channels[chan_nr].zc_action = zc_action;
+      channels[chan_nr].event_ticks = percent * frac_width;
+      printf("set nr: %u action: %u percent: %u, frac_width: %u ticks: %u\n\r", chan_nr, percent, frac_width, channels[chan_nr].event_ticks);
+    }
+}
 
-    if (chan_number >= CHANNEL_COUNT)
-        return;
-
-    channel_settings[chan_number].zc_action = zc_action;
-    channel_settings[chan_number].event_ticks = frac * frac_width;
+void zc_disable(t_channel_nr chan_nr) {
+  if (chan_nr < CHANNEL_COUNT) {
+    channels[chan_nr].enabled = false;
+  }
 }

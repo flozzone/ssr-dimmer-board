@@ -12,19 +12,22 @@ volatile t_channel *current_channel;
 
 extern uint8_t burst_lut[256][2];
 
-static void dimmer_set_phase_fired(t_channel_nr chan_nr, t_action zc_action, uint8_t value);
-static void dimmer_set_burst_fired(t_fire_type burst_type, t_channel_nr chan_nr, uint8_t value);
+static void zero_cross_callback(t_edge edge, t_ticks wave_width);
+static void frac_tick_callback(uint8_t frac);
 static void eval_frac(uint8_t frac);
 static void eval_burst(t_channel *chan);
-bool event_less_fct (const struct list_elem *a,
+static bool event_less_fct (const struct list_elem *a,
                      const struct list_elem *b,
                      void *aux);
+static inline void unschedule_event(t_channel *chan);
+static inline void schedule_event(t_channel *chan);
+
 
 /**
  * Zero cross callback function running in interrupt.
  * @param edge
  */
-void zero_cross_callback(t_edge edge, t_ticks wave_width) {
+static void zero_cross_callback(t_edge edge, t_ticks wave_width) {
   debug_toggleA();
 
   if (edge == RISING_EDGE) {
@@ -59,7 +62,7 @@ void zero_cross_callback(t_edge edge, t_ticks wave_width) {
   }
 }
 
-void frac_tick_callback(uint8_t frac) {
+static void frac_tick_callback(uint8_t frac) {
   debug_toggleB();
 
   eval_frac(frac);
@@ -81,13 +84,52 @@ static void eval_burst(t_channel *chan) {
   }
 }
 
+static inline void next_channel (void) {
+  current_event = list_next((struct list_elem *)current_event);
+  current_channel = list_entry (current_event, t_channel, elem);
+}
+
 static void eval_frac(uint8_t frac) {
   while (current_channel->value == frac) {
     channel_set_output(current_channel->id, current_channel->zc_action);
 
-    current_event = list_next((struct list_elem *)current_event);
-    current_channel = list_entry (current_event, t_channel, elem);
+    next_channel();
   }
+}
+
+static bool event_less_fct (const struct list_elem *a,
+                            const struct list_elem *b,
+                            void *aux) {
+
+  t_channel *eventA = list_entry (a, t_channel, elem);
+  t_channel *eventB = list_entry (b, t_channel, elem);
+
+  return (eventA->value < eventB->value) ? true : false;
+}
+
+static inline void unschedule_event(t_channel *chan) {
+
+  // handle next channels frac number if this is to be removed
+  if (current_channel == chan) {
+    next_channel();
+  }
+
+  if (chan->elem.next != NULL) {
+    // remove from the event list and set pointers to NULL
+    // NULL pointers will be used to determine if a channel
+    // is in the event list or not
+    list_remove(&chan->elem);
+    chan->elem.next = NULL;
+    chan->elem.prev = NULL;
+  }
+}
+
+static inline void schedule_event(t_channel *chan) {
+  if (chan->elem.next != NULL) {
+    unschedule_event(chan);
+  }
+
+  list_insert_ordered(&event_list, &chan->elem, &event_less_fct, NULL);
 }
 
 void dimmer_init(void) {
@@ -95,8 +137,8 @@ void dimmer_init(void) {
 
   list_init(&event_list);
 
-  debug_toggleA();
   channels_init();
+
   zc_start(&zero_cross_callback);
   frac_init(&frac_tick_callback);
 }
@@ -112,12 +154,12 @@ void dimmer_set(t_fire_type fire_type, t_channel_nr chan_nr, uint8_t value) {
   switch (fire_type) {
     case PHASE_TRAILING_EDGE: {
       chan->zc_action = ON;
-      list_insert_ordered(&event_list, &chan->elem, &event_less_fct, NULL);
+      schedule_event(chan);
       break;
     }
     case PHASE_LEADING_EDGE: {
       chan->zc_action = OFF;
-      list_insert_ordered(&event_list, &chan->elem, &event_less_fct, NULL);
+      schedule_event(chan);
       break;
     }
     case FULL_WAVE_BURST: {
@@ -135,21 +177,10 @@ void dimmer_set(t_fire_type fire_type, t_channel_nr chan_nr, uint8_t value) {
   chan->enabled = true;
 }
 
-
-
-//TODO: remove channel from list if in list
 void dimmer_disable(t_channel_nr chan_nr) {
   if (chan_nr < CHANNEL_COUNT) {
     channel_disable(chan_nr);
+    unschedule_event(channel_get(chan_nr));
   }
 }
 
-bool event_less_fct (const struct list_elem *a,
-                     const struct list_elem *b,
-                     void *aux) {
-
-  t_channel *eventA = list_entry (a, t_channel, elem);
-  t_channel *eventB = list_entry (b, t_channel, elem);
-
-  return (eventA->value < eventB->value) ? true : false;
-}

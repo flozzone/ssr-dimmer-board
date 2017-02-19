@@ -78,7 +78,7 @@ void setup() {
 
   dimmer_init();
 
-  dimmer_set(HALF_WAVE_BURST, CHANNEL1, 144);
+  dimmer_set(PHASE_LEADING_EDGE, CHANNEL1, 144);
   dimmer_set(PHASE_LEADING_EDGE, CHANNEL2, 200);
   dimmer_set(FULL_WAVE_BURST, CHANNEL3, 128);
   dimmer_set(HALF_WAVE_BURST, CHANNEL4, 64);

@@ -1,18 +1,11 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-//TODO: remove this
-#include <stdio.h>
-
 #include "zero_cross.h"
-#include "debug.h"
 
 // timer1 register definitions
-#define TIMER1_CS_OFFSET              0
 #define TIMER1_CS_MASK                0x7
 #define TIMER1_CS_8_PRES              0x2
-
-#define MAX_TICKS                     65535
 
 
 static void reset_timer(void);
@@ -77,14 +70,9 @@ static void disable_compare_interrupts(void) {
   TIMSK1 &= ~((1<<OCIE1A) || (1<<OCIE1B));
 }
 
-static void compare_A(t_ticks tick) {
+static void set_trigger(t_ticks tick) {
   OCR1A = tick;
   TIMSK1 |= (1<<OCIE1A);
-}
-
-static void compare_B(t_ticks tick) {
-  OCR1B = tick;
-  TIMSK1 |= (1<<OCIE1B);
 }
 
 static void set_wave_width(t_ticks ticks) {
@@ -170,7 +158,7 @@ ISR (INT0_vect) {
 
         set_wave_width(timer_value);
 
-        compare_A(half_wave_width);
+        set_trigger(half_wave_width);
 
         zc_valid = true;
       }
@@ -182,7 +170,7 @@ ISR (INT0_vect) {
       // TODO: calculate additional offset which is lost at timer reset
       set_timer_value(timer_offset);
 
-      compare_A(half_wave_width);
+      set_trigger(half_wave_width);
 
       zc_valid = true;
     }
@@ -197,7 +185,7 @@ ISR (INT0_vect) {
 ISR (TIMER1_COMPA_vect) {
   if (wave_type == POSITIVE) {
     // let the timer capture the end of the measured wave
-    compare_A(wave_width);
+    set_trigger(wave_width);
 
     // call user code for falling edge
     zc_callback(FALLING_EDGE, 0);
@@ -214,7 +202,7 @@ ISR (TIMER1_COMPA_vect) {
 
   } else if (wave_type == NEGATIVE) {
     // let the timer capture the half of the wave
-    compare_A(half_wave_width);
+    set_trigger(half_wave_width);
 
     // call user code for rising edge
     zc_callback(RISING_EDGE, wave_width);
@@ -222,40 +210,6 @@ ISR (TIMER1_COMPA_vect) {
     wave_type = POSITIVE;
   }
 }
-
-/**
- * Timer1 compare B interrupt
- **/
-#ifdef FRAC_COUNTER
-ISR (TIMER1_COMPB_vect) {
-  t_ticks timer_value = read_timer_value();
-  t_ticks next_event = MAX_TICKS;
-
-  //if (timer_value >= half_wave_width)
-  //  timer_value -= half_wave_width;
-
-  for (int i = 0; i < CHANNEL_COUNT; i++) {
-    //TODO: test which value is suited more here (when interrupt gets delayed)
-    t_channel *channel = (t_channel *) &channels[i];
-    if (channel->enabled) {
-      // find current event and set output accordingly
-      if ((channel->event_ticks > (timer_value - 100))
-         && (channel->event_ticks <= timer_value)) {
-        set_output(i, invert(channel->zc_action));
-      }
-
-      // find next tick count
-      if ((channel->event_ticks > timer_value)
-          && (channel->event_ticks < next_event)) {
-        next_event = channel->event_ticks;
-      }
-    }
-  }
-
-  if (next_event < MAX_TICKS)
-    compare_B(next_event);
-}
-#endif
 
 ISR (TIMER1_OVF_vect) {
   reset();

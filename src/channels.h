@@ -15,15 +15,35 @@
 typedef uint8_t t_channel_nr;
 typedef bool t_action;
 
+enum e_fire_type {
+    NO_FIRE,
+    PHASE_TRAILING_EDGE,
+    PHASE_LEADING_EDGE,
+    FULL_WAVE_BURST,
+    HALF_WAVE_BURST
+};
+typedef uint8_t t_fire_type;
+
 typedef struct {
     t_channel_nr id;
     bool enabled;
     volatile uint8_t *port;
     volatile uint8_t *ddr;
     volatile uint8_t pin;
-    t_action zc_action;
-    t_ticks value;
 
+    t_fire_type fire_type;
+
+    // value for dimming
+    uint8_t value;
+
+    // for burst fire control
+    volatile t_action current_action;
+    volatile uint8_t current_bursts;
+
+    // for phase angle fire control
+    t_action zc_action;
+
+    // list element to put channels in a linked list
     struct list_elem elem;
 } t_channel;
 

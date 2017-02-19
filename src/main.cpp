@@ -78,11 +78,10 @@ void setup() {
 
   dimmer_init();
 
-  dimmer_set(CHANNEL1, OFF, 100);
-  dimmer_set(CHANNEL2, OFF, 254);
-  dimmer_set(CHANNEL3, OFF, 253);
-  dimmer_set(CHANNEL4, OFF, 252);
-  dimmer_set(CHANNEL5, OFF, 251);
+  dimmer_set(FULL_WAVE_BURST, CHANNEL1, 128);
+  dimmer_set(PHASE_LEADING_EDGE, CHANNEL2, 200);
+  dimmer_set(FULL_WAVE_BURST, CHANNEL3, 128);
+  dimmer_set(HALF_WAVE_BURST, CHANNEL4, 64);
 }
 
 char uart_getchar(void) {
@@ -124,6 +123,4 @@ void loop() {
   uint8_t value = atoi(&buffer[4]);
 
   printf("channel: %u action: %u value: %u\n\r", channel_nr, action, value);
-
-  dimmer_set(channel_nr, action, value);
 }

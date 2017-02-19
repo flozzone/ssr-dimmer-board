@@ -21,8 +21,6 @@ static t_channel channels[CHANNEL_COUNT] = {
                 .port = &PORTD,
                 .ddr = &DDRD,
                 .pin = PD4,
-                .zc_action = OFF,
-                .value = 0
         },
         {
                 .id = CHANNEL2,
@@ -30,8 +28,6 @@ static t_channel channels[CHANNEL_COUNT] = {
                 .port = &PORTD,
                 .ddr = &DDRD,
                 .pin = PD5,
-                .zc_action = OFF,
-                .value = 0
         },
         {
                 .id = CHANNEL3,
@@ -39,8 +35,6 @@ static t_channel channels[CHANNEL_COUNT] = {
                 .port = &PORTD,
                 .ddr = &DDRD,
                 .pin = PD6,
-                .zc_action = OFF,
-                .value = 0
         },
         {
                 .id = CHANNEL4,
@@ -48,8 +42,6 @@ static t_channel channels[CHANNEL_COUNT] = {
                 .port = &PORTD,
                 .ddr = &DDRD,
                 .pin = PD7,
-                .zc_action = OFF,
-                .value = 0
         },
         {
                 .id = CHANNEL5,
@@ -57,8 +49,6 @@ static t_channel channels[CHANNEL_COUNT] = {
                 .port = &PORTB,
                 .ddr = &DDRB,
                 .pin = PB0,
-                .zc_action = OFF,
-                .value = 0
         }
 };
 
@@ -77,6 +67,8 @@ void channel_set_output(t_channel_nr channel, t_action action) {
   }
 }
 
+
+// unused
 void channel_enable(t_channel_nr chan_nr, t_action action, t_ticks ticks) {
 
   channels[chan_nr].enabled = false;

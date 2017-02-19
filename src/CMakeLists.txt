@@ -27,7 +27,7 @@ project(SSRBoard C CXX)
 if(FIRMWARE_BUILD)
     generate_arduino_library(dimmer
         SRCS zero_cross.cpp dimmer.cpp channels.cpp frac.cpp debug.h list.h
-        HDRS zero_cross.h dimmer.h channels.h frac.h debug.cpp list.cpp
+        HDRS zero_cross.h dimmer.h channels.h frac.h debug.cpp list.cpp burst-lut.cpp
     )
 
     generate_arduino_firmware(ssr-dimmer

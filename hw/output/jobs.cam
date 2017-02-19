@@ -1,5 +1,5 @@
 [CAM Processor Job]
-Description="\n"
+Description[en]="\n\n"
 Section=Sec_1
 Section=Sec_2
 Section=Sec_3
@@ -13,7 +13,7 @@ Wheel=""
 Rack=""
 Scale=1
 Output="/home/floz/eagle/ssr/ssr-dimmer-board/hw/output/bottom.ps"
-Flags="0 0 0 1 0 1 0"
+Flags="1 0 0 1 0 1 0"
 Emulate="0"
 Offset="0.0mil 0.0mil"
 Sheet=1

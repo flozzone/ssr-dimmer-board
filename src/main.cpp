@@ -12,7 +12,7 @@
 #endif
 
 
-#include "zero_cross.h"
+#include "dimmer.h"
 
 byte ledPin = 13;
 byte zcPin =  2;
@@ -60,6 +60,7 @@ void setup() {
 
  // Start the UART
  Serial.begin(115200) ;
+  Serial.setTimeout(-1);
 
  // fill in the UART file descriptor with pointer to writer.
   fdev_setup_stream (&uartout, uart_putchar, NULL,
@@ -75,15 +76,54 @@ void setup() {
   //pinMode(zcOutPin, OUTPUT);
   //pciSetup(zcPin);
 
-  zc_set(CHANNEL5, OFF, 0);
-  zc_set(CHANNEL5, OFF, 0);
-  zc_start();
+  dimmer_init();
+
+  dimmer_set(CHANNEL1, OFF, 100);
+  dimmer_set(CHANNEL2, OFF, 254);
+  dimmer_set(CHANNEL3, OFF, 253);
+  dimmer_set(CHANNEL4, OFF, 252);
+  dimmer_set(CHANNEL5, OFF, 251);
 }
 
+char uart_getchar(void) {
+  loop_until_bit_is_set(UCSR0A, RXC0); /* Wait until data exists. */
+  return UDR0;
+}
 
+void _read_line(char *buffer, uint8_t len) {
+  do {
+    *buffer = uart_getchar();
+    if (*buffer == 13) {
+      printf("this is it\n\r");
+      *buffer = '\0';
+      return;
+    }
+    buffer++;
+  } while (--len > 0);
+  return;
+}
 
+// LINE: [CHANNEL_NR] [ON/OFF] [VALUE]
+//             1         1        3
+
+#define LINE_LENGTH 8
 
 void loop() {
-    //blink(100); // Blink for a second
-    //digitalWrite(ledPin, HIGH);
+  char buffer[8];
+  printf("start\n\r");
+
+  Serial.readBytes(buffer, 7);
+  buffer[7] = '\0';
+
+  //_read_line(buffer, LINE_LENGTH);
+
+  printf("read: %s\n\r", buffer);
+
+  t_channel_nr channel_nr = buffer[0] - '0';
+  t_action action = buffer[2] - '0';
+  uint8_t value = atoi(&buffer[4]);
+
+  printf("channel: %u action: %u value: %u\n\r", channel_nr, action, value);
+
+  dimmer_set(channel_nr, action, value);
 }

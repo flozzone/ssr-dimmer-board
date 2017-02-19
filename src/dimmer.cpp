@@ -69,7 +69,8 @@ static void eval_burst(t_channel *chan) {
   if (chan->current_bursts == 0) {
     uint8_t next_burst = burst_lut[chan->value][!chan->current_action];
     if (next_burst != 0) {
-      chan->current_bursts = next_burst;
+      // -1 because we loose one cycle in this logic
+      chan->current_bursts = next_burst - 1;
       chan->current_action = !chan->current_action;
       channel_set_output(chan->id, chan->current_action);
     } else {

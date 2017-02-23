@@ -76,9 +76,13 @@ void setup() {
   //pinMode(zcOutPin, OUTPUT);
   //pciSetup(zcPin);
 
+  // thats it!
+  // FROM HERE
   dimmer_init();
+  dimmer_set(PHASE_TRAILING_EDGE, CHANNEL1, 1);
+  // TO HERE
 
-  dimmer_set(PHASE_LEADING_EDGE, CHANNEL1, 144);
+
   dimmer_set(PHASE_LEADING_EDGE, CHANNEL2, 200);
   dimmer_set(FULL_WAVE_BURST, CHANNEL3, 128);
   dimmer_set(HALF_WAVE_BURST, CHANNEL4, 64);

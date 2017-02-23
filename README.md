@@ -5,17 +5,8 @@ SSRs with source code for Arduino microcontroller.
 
 ## Hardware
 
-### Schematic
-
-https://github.com/flozzone/ssr-dimmer-board/blob/master/hw/schematic.pdf
-
-<img src="https://cdn.rawgit.com/flozzone/ssr-dimmer-board/1bd6a640/hw/schematic.pdf">
-
-### Layout
-
-https://github.com/flozzone/ssr-dimmer-board/blob/master/hw/layout.pdf
-
-<img src="https://cdn.rawgit.com/flozzone/ssr-dimmer-board/1bd6a640/hw/layout.pdf">
+* Schematic: https://github.com/flozzone/ssr-dimmer-board/blob/master/hw/schematic.pdf
+* Layout: https://github.com/flozzone/ssr-dimmer-board/blob/master/hw/layout.pdf
 
 ## Building
 

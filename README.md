@@ -32,3 +32,15 @@ workstation (It should be recognized as /dev/ttyUSB0).
 
     cd src/bin-firmware
     make upload
+    
+## Pin-Mapping
+
+| Pin name 	| Description      	| Type (AVR side) 	| Arduino Pin   	| AVR Pin 	|
+|----------	|------------------	|-----------------	|---------------	|---------	|
+| ZC       	| Zero cross       	| INPUT           	| digital pin 2 	| PD2     	|
+| CH1      	| Channel1 control 	| OUTPUT          	| digital pin 4 	| PD4     	|
+| CH2      	| Channel2 control 	| OUTPUT          	| digital pin 5 	| PD5     	|
+| CH3      	| Channel3 control 	| OUTPUT          	| digital pin 6 	| PD6     	|
+| CH4      	| Channel4 control 	| OUTPUT          	| digital pin 7 	| PD7     	|
+| CH5      	| Channel5 control 	| OUTPUT          	| digital pin 8 	| PB0     	|
+| GND      	| Ground           	| POWER           	| GND           	| GND     	|

@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 
 #include "zero_cross.h"
 
@@ -37,10 +38,6 @@ static void reset_zc_interrupt(void) {
 
   // enable interrupt
   EIMSK |= (1<<INT0);
-}
-
-static void disable_zc_interrupt(void) {
-  EIMSK &= ~(1<<INT0);
 }
 
 static void reset_timer(void) {
@@ -124,10 +121,14 @@ static uint16_t set_timer_value(uint16_t value) {
 }
 
 static void reset(void) {
+
   disable_compare_interrupts();
 
   wave_type = INITIALIZING;
-  zc_valid = false;
+
+  // clear all pending interrupts
+  EIFR |= (1<<INTF0);
+  TIFR1 |= ((1<<OCF1A) | (1<<OCF1B) | (1<<TOV1));
 }
 
 
@@ -184,21 +185,21 @@ ISR (INT0_vect) {
  **/
 ISR (TIMER1_COMPA_vect) {
   if (wave_type == POSITIVE) {
-    // let the timer capture the end of the measured wave
-    set_trigger(wave_width);
 
-    // call user code for falling edge
-    zc_callback(FALLING_EDGE, 0);
+    if (zc_valid) {
+      // let the timer capture the end of the measured wave
+      set_trigger(wave_width);
 
-    wave_type = NEGATIVE;
+      // call user code for falling edge
+      zc_callback(FALLING_EDGE, 0);
+
+      wave_type = NEGATIVE;
+    } else {
+      reset();
+    }
 
     // check if a reasonable wave length has been measured
     // otherwise restart with calibration
-    if (zc_valid == false) {
-      reset();
-    } else {
-      zc_valid = false;
-    }
 
   } else if (wave_type == NEGATIVE) {
     // let the timer capture the half of the wave
@@ -208,6 +209,8 @@ ISR (TIMER1_COMPA_vect) {
     zc_callback(RISING_EDGE, wave_width);
 
     wave_type = POSITIVE;
+
+    zc_valid = false;
   }
 }
 

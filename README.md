@@ -44,3 +44,36 @@ workstation (It should be recognized as /dev/ttyUSB0).
 | CH4      	| Channel4 control 	| OUTPUT          	| digital pin 7 	| PD7     	|
 | CH5      	| Channel5 control 	| OUTPUT          	| digital pin 8 	| PB0     	|
 | GND      	| Ground           	| POWER           	| GND           	| GND     	|
+
+## Serial Protocol
+
+The serial protocol consists of one single 5 byte message, which is described
+in the following struct message. 
+
+For the value argument of the message, currently only values between 0 and 16
+are allowed.
+
+    struct message {
+      byte magic1 = 0xF6;
+      byte magic2 = 0x6F;
+      enum e_fire_type fire_type;
+      enum e_channels channel_nr;
+      byte value;
+    };
+
+    enum e_fire_type {
+        NO_FIRE,
+        PHASE_TRAILING_EDGE,
+        PHASE_LEADING_EDGE,
+        FULL_WAVE_BURST,
+        HALF_WAVE_BURST
+    };
+
+    enum e_channels {
+        CHANNEL1 = 0,
+        CHANNEL2,
+        CHANNEL3,
+        CHANNEL4,
+        CHANNEL5
+    };
+
